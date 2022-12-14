@@ -5,13 +5,11 @@ import (
 	"time"
 )
 
-func Display(i int) {
-	fmt.Println(i)
-}
-
 func main() {
 	for i := 0; i < 10; i++ {
-		go Display(i)
+		go func(counter int) {
+			fmt.Println(counter)
+		}(i)
 	}
 	time.Sleep(10 * time.Second)
 }
