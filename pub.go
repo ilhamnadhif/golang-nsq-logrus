@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/nsqio/go-nsq"
 	"github.com/sirupsen/logrus"
-	"sync"
 )
 
 func main() {
@@ -13,16 +13,11 @@ func main() {
 	if err != nil {
 		logrus.Fatal(err)
 	}
-	wg := new(sync.WaitGroup)
 	for i := 1; i <= 10; i++ {
-		wg.Add(1)
-		go func(counter int) {
-			err := p.Publish("bootcamp", []byte(fmt.Sprintf("pesan ke - %d", counter)))
-			if err != nil {
-				logrus.Error(err)
-			}
-			wg.Done()
-		}(i)
+		err := p.Publish("test", []byte(fmt.Sprintf("pesan ke - %d", i)))
+		if err != nil {
+			logrus.Error(err)
+		}
 	}
-	wg.Wait()
+	p.Stop()
 }

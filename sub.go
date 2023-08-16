@@ -1,30 +1,52 @@
 package main
 
 import (
+	"os"
+	"os/signal"
+	"syscall"
+
 	"github.com/nsqio/go-nsq"
 	"github.com/sirupsen/logrus"
-	"sync"
 )
 
 func main() {
-	wg := new(sync.WaitGroup)
-	wg.Add(1)
+	config := nsq.NewConfig()
 
-	decodeConfig := nsq.NewConfig()
-	c, err := nsq.NewConsumer("bootcamp", "My_NSQ_Channel", decodeConfig)
+	consumerProcess, err := nsq.NewConsumer("test", "process", config)
+	if err != nil {
+		logrus.Panic("Could not create consumer")
+	}
+	consumerLog, err := nsq.NewConsumer("test", "log", config)
 	if err != nil {
 		logrus.Panic("Could not create consumer")
 	}
 
-	c.AddHandler(nsq.HandlerFunc(func(message *nsq.Message) error {
-		logrus.Println("NSQ message received:")
+	consumerProcess.AddHandler(nsq.HandlerFunc(func(message *nsq.Message) error {
+		logrus.Println("NSQ process message received:")
 		logrus.Println(string(message.Body))
 		return nil
 	}))
-	err = c.ConnectToNSQD("127.0.0.1:4150")
+	consumerLog.AddHandler(nsq.HandlerFunc(func(message *nsq.Message) error {
+		logrus.Println("NSQ log message received:")
+		logrus.Println(string(message.Body))
+		return nil
+	}))
+
+	err = consumerProcess.ConnectToNSQD("127.0.0.1:4150")
+	if err != nil {
+		logrus.Panic("Could not connect")
+	}
+	err = consumerLog.ConnectToNSQD("127.0.0.1:4150")
 	if err != nil {
 		logrus.Panic("Could not connect")
 	}
 
-	wg.Wait()
+	// Menunggu sinyal untuk keluar
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	<-sigChan
+
+	// Menghentikan konsumen
+	consumerProcess.Stop()
+	consumerLog.Stop()
 }
